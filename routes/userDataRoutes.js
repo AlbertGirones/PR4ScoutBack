@@ -9,6 +9,11 @@ router.get('/userDataRoutes', (req, res) => {
       res.status(500).json({ error: 'Error interno del servidor' });
       return;
     }
+
+    results.forEach(result => {
+      result.image = `http://localhost:5000${result.image}`;
+    });
+
     res.json(results);
   });
 });

@@ -16,6 +16,36 @@ router.get('/teams', (req, res) => {
   });
 });
 
+router.get('/getLocalTeams/:teamId/:leagueId', (req, res) => {
+  const { teamId, leagueId } = req.params;
+  const query = 'SELECT t_local.id_team AS id, t_local.name AS equipo_local FROM teams t_local LEFT JOIN matches m ON t_local.id_team = m.local_team AND m.visitor_team = ? WHERE m.id_match IS NULL AND t_local.league = ? AND t_local.id_team != ?';
+  connection.query(query, [teamId, leagueId, teamId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener las ligas:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Equipos no encontrados' });
+    }
+    res.json(results);
+  });
+});
+
+router.get('/getVisitorTeams/:teamId/:leagueId', (req, res) => {
+  const { teamId, leagueId } = req.params;
+  const query = 'SELECT t_visitor.id_team AS id, t_visitor.name AS equipo_visitante, m.day, m.hour FROM teams t_visitor LEFT JOIN matches m ON t_visitor.id_team = m.visitor_team AND m.local_team = ? WHERE m.id_match IS NULL AND t_visitor.league = ? AND t_visitor.id_team != ?';
+  connection.query(query, [teamId, leagueId, teamId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener las ligas:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Equipos no encontrados' });
+    }
+    res.json(results);
+  });
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Carpeta donde se guardarán las imágenes
@@ -40,14 +70,26 @@ router.post('/teams', upload.single('image'), (req, res) => {
 
   const imagePath = '/uploads/' + image.filename;
 
-  // Luego inserta el nuevo equipo en la base de datos
-  connection.query('INSERT INTO teams (name, league, image) VALUES (?, ?, ?)', [name, league_id, imagePath], (error, results) => {
+  // Verificar si el nombre del equipo ya existe
+  connection.query('SELECT * FROM teams WHERE name = ?', [name], (error, results) => {
     if (error) {
-      console.error('Error al crear el equipo:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
-      return;
+      console.error('Error al verificar el nombre del equipo:', error);
+      return res.status(500).json({ error: 'Error interno del servidor' });
     }
-    res.json({ message: 'Equipo creado correctamente' });
+
+    if (results.length > 0) {
+      return res.status(400).json({ error: 'El nombre del equipo ya existe' });
+    }
+
+    // Luego inserta el nuevo equipo en la base de datos
+    connection.query('INSERT INTO teams (name, league, image) VALUES (?, ?, ?)', [name, league_id, imagePath], (error, results) => {
+      if (error) {
+        console.error('Error al crear el equipo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      res.json({ message: 'Equipo creado correctamente' });
+    });
   });
 });
 

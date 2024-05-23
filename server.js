@@ -6,6 +6,7 @@ const userDataRoutes = require('./routes/userDataRoutes');
 const teamsRoutes = require('./routes/teams');
 const leaguesRoutes = require('./routes/leagues');
 const playersRoutes = require('./routes/players');
+const matchRoutes = require('./routes/matches');
 const authRoutes = require('./routes/auth');
 const PORT = process.env.PORT || 5000;
 
@@ -27,6 +28,7 @@ app.use('/api', teamsRoutes);
 app.use('/api', leaguesRoutes);
 app.use('/api', playersRoutes); 
 app.use('/auth', authRoutes);
+app.use('/api', matchRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });

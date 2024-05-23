@@ -31,4 +31,20 @@ router.get('/userDataRoutes/:userId', (req, res) => {
   });
 });
 
+router.get('/user/:userId/team', (req, res) => {
+  const userId = req.params.userId;
+  
+  const sql = `SELECT team FROM users WHERE id_user = ?`;
+  connection.query(sql, [userId], (err, result) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    if (result.length > 0) {
+      res.json({ teamId: result[0].team });
+    } else {
+      res.status(404).send('Team not found');
+    }
+  });
+});
+
 module.exports = router;

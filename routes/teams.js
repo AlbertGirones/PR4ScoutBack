@@ -46,6 +46,25 @@ router.get('/getVisitorTeams/:teamId/:leagueId', (req, res) => {
   });
 });
 
+router.get('/teams/nextTeamInfo/:teamId', (req, res) => {
+  const teamId = req.params.teamId;
+
+  const query = "SELECT DISTINCT p.id_player, p.image, p.name, p.position FROM players p JOIN teams t ON p.team = t.id_team JOIN matches m ON (t.id_team = m.local_team OR t.id_team = m.visitor_team) JOIN (SELECT CASE WHEN m.local_team = ? THEN m.visitor_team ELSE m.local_team END AS rival_id FROM matches m WHERE (m.local_team = ? OR m.visitor_team = ?) AND (m.result IS NULL OR m.result != '') AND m.day >= CURDATE() ORDER BY m.day ASC LIMIT 1) AS subquery ON t.id_team = subquery.rival_id ORDER BY p.name ASC LIMIT 3";
+
+  connection.query(query, [teamId, teamId, teamId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener el próximo partido:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Datos del equipo no encontrados' });
+    }
+    res.json(results);
+  });
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Carpeta donde se guardarán las imágenes

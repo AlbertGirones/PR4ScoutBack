@@ -12,10 +12,12 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 
+// Configuración de CORS para permitir todos los orígenes
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://192.168.1.101:5000', 'http://192.168.1.101:3000', 'http://localhost:5000', 'http://localhost:3000'],
   credentials: true
 }));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
@@ -26,15 +28,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', userDataRoutes);
 app.use('/api', teamsRoutes);
 app.use('/api', leaguesRoutes);
-app.use('/api', playersRoutes); 
+app.use('/api', playersRoutes);
 app.use('/auth', authRoutes);
 app.use('/api', matchRoutes);
 
+// Definir una ruta para la raíz
+app.get('/', (req, res) => {
+  res.send('Servidor funcionando correctamente');
+});
+
+// Ruta para manejar rutas no encontradas
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
-app.listen(PORT, () => {
+// Configuración del servidor para escuchar en todas las interfaces de red
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor Express corriendo en el puerto ${PORT}`);
 });
 

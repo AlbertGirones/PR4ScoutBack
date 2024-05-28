@@ -17,6 +17,64 @@ router.get('/getMatchesOfClub/:clubId', (req, res) => {
   });
 });
 
+router.get('/matches/upcomingAndRecent/:teamId', (req, res) => {
+  const teamId = req.params.teamId;
+
+  const upcomingMatchQuery = `
+    SELECT IF(m.local_team = ?, visitor_team.image, local_team.image) AS rival_image, 
+           IF(m.local_team = ?, visitor_team.name, local_team.name) AS rival_name, 
+           DATE_FORMAT(m.day, '%d/%m/%Y') AS match_day, 
+           DATE_FORMAT(m.hour, '%H:%i') AS match_hour, 
+           CASE WHEN m.local_team != NULL THEN m.result ELSE '-' END AS result, 
+           CASE WHEN m.local_team = ? THEN 'Visitante' ELSE 'Local' END AS local_or_visitor 
+    FROM matches m 
+    JOIN teams local_team ON m.local_team = local_team.id_team 
+    JOIN teams visitor_team ON m.visitor_team = visitor_team.id_team 
+    WHERE (m.local_team = ? OR m.visitor_team = ?) 
+      AND (m.result IS NULL OR m.result != '') 
+      AND m.day >= CURDATE() 
+    ORDER BY m.day ASC LIMIT 1
+  `;
+
+  const recentMatchesQuery = `
+    SELECT IF(m.local_team = ?, t2.image, t1.image) AS rival_image, 
+           IF(m.local_team = ?, t2.name, t1.name) AS rival_name, 
+           DATE_FORMAT(m.day, '%d/%m/%Y') AS match_day, 
+           DATE_FORMAT(m.hour, '%H:%i') AS match_hour, 
+           CASE WHEN m.local_team IS NOT NULL THEN m.result ELSE '-' END AS result, 
+           CASE WHEN m.local_team = ? THEN 'Visitante' ELSE 'Local' END AS local_or_visitor 
+    FROM matches m 
+    INNER JOIN teams t1 ON m.local_team = t1.id_team 
+    INNER JOIN teams t2 ON m.visitor_team = t2.id_team 
+    WHERE (m.local_team = ? OR m.visitor_team = ?) 
+      AND (m.result IS NOT NULL AND m.result != '') 
+      AND m.day < CURDATE() 
+    ORDER BY m.id_match DESC LIMIT 2
+  `;
+
+  connection.query(upcomingMatchQuery, [teamId, teamId, teamId, teamId, teamId], (error, upcomingMatchResult) => {
+    if (error) {
+      console.error('Error al obtener el próximo partido:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+
+    connection.query(recentMatchesQuery, [teamId, teamId, teamId, teamId, teamId], (error, recentMatchesResult) => {
+      if (error) {
+        console.error('Error al obtener los partidos recientes:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+
+      res.json({
+        upcomingMatch: upcomingMatchResult[0],
+        recentMatches: recentMatchesResult
+      });
+    });
+  });
+});
+
+
 router.get('/journeys', (req, res) => {
   connection.query('SELECT DISTINCT journey FROM matches', (error, results) => {
     if (error) {
@@ -27,6 +85,8 @@ router.get('/journeys', (req, res) => {
     res.json({ journeys });
   });
 });
+
+
 
 // Agregar un nuevo partido con verificaciones
 router.post('/addMatch', upload.none(), (req, res) => {

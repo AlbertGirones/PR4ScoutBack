@@ -9,21 +9,35 @@ router.post('/register', async (req, res) => {
     const { email, password, name, surname } = req.body;
 
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        connection.query('INSERT INTO users (email, password, name, surname) VALUES (?, ?, ?, ?)', [email, hashedPassword, name, surname], (error, results) => {
+        // Verificar si el correo ya existe
+        connection.query('SELECT email FROM users WHERE email = ?', [email], async (error, results) => {
             if (error) {
-                console.error('Error al registrar usuario:', error);
-                return res.status(500).send({ message: 'Error al registrar usuario' });
+                console.error('Error al verificar el correo:', error);
+                return res.status(500).send({ message: 'Error al verificar el correo' });
             }
 
-            res.status(201).send({ message: 'Usuario registrado con éxito' });
+            if (results.length > 0) {
+                // El correo ya está en uso
+                return res.status(400).send({ message: 'El correo ya está en uso' });
+            }
+
+            // Hashear la contraseña y registrar el usuario
+            const hashedPassword = await bcrypt.hash(password, 10);
+            connection.query('INSERT INTO users (email, password, name, surname) VALUES (?, ?, ?, ?)', [email, hashedPassword, name, surname], (error, results) => {
+                if (error) {
+                    console.error('Error al registrar usuario:', error);
+                    return res.status(500).send({ message: 'Error al registrar usuario' });
+                }
+
+                res.status(201).send({ message: 'Usuario registrado con éxito' });
+            });
         });
     } catch (error) {
-        console.error('Error al hashear la contraseña:', error);
+        console.error('Error al registrar usuario:', error);
         return res.status(500).send({ message: 'Error al registrar usuario' });
     }
 });
+
 
 router.post('/login', (req, res) => {
     const { email, password } = req.body;

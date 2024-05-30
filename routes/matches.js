@@ -90,6 +90,7 @@ router.get('/journeys', (req, res) => {
 
 // Agregar un nuevo partido con verificaciones
 router.post('/addMatch', upload.none(), (req, res) => {
+  console.log('Request body:', req.body);
   const { leagueId, localeTeam, visitantTeam, day, time, journey } = req.body;
 
   // Verificar si hay un partido el mismo día para los equipos
@@ -138,6 +139,18 @@ router.post('/addMatch', upload.none(), (req, res) => {
         res.json({ success: true });
       });
     });
+  });
+});
+
+router.delete('/deleteMatch/:matchId', (req, res) => {
+  const matchId = req.params.matchId;
+  connection.query('DELETE FROM matches WHERE id_match = ?', [matchId], (error, results) => {
+    if (error) {
+      console.error('Error al eliminar el partido:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    res.json({ success: true });
   });
 });
 

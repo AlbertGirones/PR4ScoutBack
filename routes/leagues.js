@@ -44,4 +44,37 @@ router.post('/leagues', (req, res) => {
   });
 });
 
+router.post('/addScout', (req, res) => {
+  const { team, player, desc } = req.body;
+
+  // Consulta SQL para verificar si ya existe un registro con el mismo jugador y equipo
+  const checkQuery = 'SELECT * FROM scouts WHERE player = ? AND team = ?';
+
+  // Ejecutar la consulta para verificar si ya existe un registro
+  connection.query(checkQuery, [player, team], (checkError, checkResults) => {
+    if (checkError) {
+      console.error('Error al verificar si el jugador ya está siendo observado en este equipo:', checkError);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+
+    // Si ya existe un registro, enviar un mensaje de error
+    if (checkResults.length > 0) {
+      res.status(400).json({ error: '¡Este jugador ya está siendo observado en este equipo!' });
+      return;
+    }
+
+    // Si no existe un registro, proceder a insertar el nuevo registro en la base de datos
+    const insertQuery = 'INSERT INTO scouts (player, team, description) VALUES (?, ?, ?)';
+    connection.query(insertQuery, [player, team, desc], (insertError, insertResults) => {
+      if (insertError) {
+        console.error('Error al crear el equipo:', insertError);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      res.json({ message: 'Scout creado correctamente', results: insertResults });
+    });
+  });
+});
+
 module.exports = router;

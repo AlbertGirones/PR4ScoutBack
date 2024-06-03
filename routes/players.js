@@ -32,7 +32,48 @@ router.get('/players/getPersonalPlayers/:teamId', (req, res) => {
       res.status(500).json({ error: 'Error interno del servidor' });
       return;
     }
+    res.json(results);
+  });
+});
 
+router.get('/localPlayersOfMatch/:clubId/:teamId', (req, res) => {
+  const clubId = req.params.clubId;
+  const teamId = req.params.teamId;
+  const query = "SELECT p.id_player, p.name, p.position, p.image FROM players p LEFT JOIN (SELECT DISTINCT player FROM stats WHERE id_match = ?) s ON p.id_player = s.player WHERE s.player IS NULL AND p.team = ? ORDER BY p.position";
+  connection.query(query, [teamId, clubId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener los jugadores del equipo local:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    res.json(results);
+  });
+});
+
+router.get('/visitantPlayersOfMatch/:clubId/:teamId', (req, res) => {
+  const clubId = req.params.clubId;
+  const teamId = req.params.teamId;
+  const query = "SELECT p.id_player, p.name, p.position, p.image FROM players p LEFT JOIN (SELECT DISTINCT player FROM stats WHERE id_match = ?) s ON p.id_player = s.player WHERE s.player IS NULL AND p.team = ? ORDER BY p.position";
+  connection.query(query, [teamId, clubId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener los jugadores del equipo local:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    res.json(results);
+  });
+});
+
+router.get('/getInfoPlayer/:playerId', (req, res) => {
+  const playerId = req.params.playerId;
+  const query = "SELECT p.*, t.name AS teamName FROM players p JOIN teams t ON p.team = t.id_team WHERE p.id_player = ?";
+  connection.query(query, [playerId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener la información del jugador:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    console.log(results);
     res.json(results);
   });
 });
@@ -80,5 +121,16 @@ router.post('/players', upload.single('image'), (req, res) => {
   });
 });
 
+router.delete('/deletePlayer/:playerId', (req, res) => {
+  const playerId = req.params.playerId;
+  connection.query('DELETE FROM players WHERE id_player = ?', [playerId], (error, results) => {
+    if (error) {
+      console.error('Error al eliminar el jugador:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    res.json({ success: true });
+  });
+});
 
 module.exports = router;

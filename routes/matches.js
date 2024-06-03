@@ -17,6 +17,19 @@ router.get('/getMatchesOfClub/:clubId', (req, res) => {
   });
 });
 
+router.get('/infoMatch/:matchId', (req, res) => {
+  const matchId = req.params.matchId;
+  const query = "SELECT m.*, DATE_FORMAT(m.day, '%d/%m/%Y') AS dayGood, DATE_FORMAT(m.hour, '%H:%i') AS hourGood, local_team.name AS local_team_name, visitor_team.name AS visitor_team_name, local_team.image AS local_team_image, visitor_team.image AS visitor_team_image FROM matches m JOIN teams local_team ON m.local_team = local_team.id_team JOIN teams visitor_team ON m.visitor_team = visitor_team.id_team WHERE m.id_match = ?";
+  connection.query(query, [matchId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener los datos del partido:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+    res.json(results[0]);
+  });
+});
+
 router.get('/matches/upcomingAndRecent/:teamId', (req, res) => {
   const teamId = req.params.teamId;
 

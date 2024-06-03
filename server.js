@@ -7,6 +7,7 @@ const teamsRoutes = require('./routes/teams');
 const leaguesRoutes = require('./routes/leagues');
 const playersRoutes = require('./routes/players');
 const matchRoutes = require('./routes/matches');
+const statsRoutes = require('./routes/stats');
 const authRoutes = require('./routes/auth');
 const PORT = process.env.PORT || 5000;
 
@@ -31,6 +32,8 @@ app.use('/api', leaguesRoutes);
 app.use('/api', playersRoutes);
 app.use('/auth', authRoutes);
 app.use('/api', matchRoutes);
+app.use('/api', statsRoutes);
+
 
 // Definir una ruta para la raíz
 app.get('/', (req, res) => {

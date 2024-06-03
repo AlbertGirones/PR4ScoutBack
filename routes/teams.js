@@ -46,7 +46,7 @@ router.get('/getVisitorTeams/:teamId/:leagueId', (req, res) => {
   });
 });
 
-router.get('/teams/nextTeamInfo/:teamId', (req, res) => {
+router.get('/nextTeamInfo/:teamId', (req, res) => {
   const teamId = req.params.teamId;
 
   const query = "SELECT DISTINCT p.id_player, p.image, p.name, p.position FROM players p JOIN teams t ON p.team = t.id_team JOIN matches m ON (t.id_team = m.local_team OR t.id_team = m.visitor_team) JOIN (SELECT CASE WHEN m.local_team = ? THEN m.visitor_team ELSE m.local_team END AS rival_id FROM matches m WHERE (m.local_team = ? OR m.visitor_team = ?) AND (m.result IS NULL OR m.result != '') AND m.day >= CURDATE() ORDER BY m.day ASC LIMIT 1) AS subquery ON t.id_team = subquery.rival_id ORDER BY p.name ASC LIMIT 3";
@@ -57,9 +57,18 @@ router.get('/teams/nextTeamInfo/:teamId', (req, res) => {
       res.status(500).json({ error: 'Error interno del servidor' });
       return;
     }
+    res.json(results);
+  });
+});
 
-    if (results.length === 0) {
-      return res.status(404).json({ error: 'Datos del equipo no encontrados' });
+router.get('/getSquadTeam/:clubId', (req, res) => {
+  const clubId = req.params.clubId;
+  const query = "SELECT * FROM players WHERE team = ? ORDER BY position";
+  connection.query(query, [clubId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener los partidos:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
     }
     res.json(results);
   });

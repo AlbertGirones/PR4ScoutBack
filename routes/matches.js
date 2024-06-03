@@ -4,6 +4,53 @@ const connection = require('../db/connection');
 const multer = require('multer');
 const upload = multer();
 
+router.get('/getMatch/:id', async (req, res) => {
+  try {
+    const matchId = req.params.id;
+    const query = "SELECT DATE_FORMAT(day, '%Y-%m-%d') AS day, hour FROM matches WHERE id_match = ?";
+    connection.query(query, [matchId], (error, results) => {
+      if (error) {
+        console.error('Error al obtener el partido:', error);
+        return res.status(500).json({ error: 'Error al obtener el partido' });
+      }
+      
+      if (results.length === 0) {
+        return res.status(404).json({ error: 'Partido no encontrado' });
+      }
+
+      const match = results[0];
+      console.log(match);
+      res.json(match);
+    });
+  } catch (error) {
+    console.error('Error al obtener el partido:', error);
+    res.status(500).json({ error: 'Error al obtener el partido' });
+  }
+});
+
+
+router.put('/updateMatch/:matchId', (req, res) => {
+  const { matchId } = req.params;
+  const { day, time } = req.body;
+
+  connection.query(
+    'UPDATE matches SET day = ?, hour = ? WHERE id_match = ?',
+    [day, time, matchId],
+    (error, results) => {
+      if (error) {
+        console.error('Error al actualizar los datos del partido:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      if (results.affectedRows === 0) {
+        res.status(404).json({ error: 'No se encontró el partido' });
+        return;
+      }
+      res.json({ message: 'Datos del partido actualizados correctamente', teamId: req.params.matchId });
+    }
+  );
+});
+
 router.get('/getMatchesOfClub/:clubId', (req, res) => {
   const clubId = req.params.clubId;
   const query = "SELECT m.id_match, team_local.name AS local_team, team_local.image AS local_team_image, team_visitor.name AS visitor_team, team_visitor.image AS visitor_team_image, DATE_FORMAT(m.day, '%d/%m/%Y') AS day, DATE_FORMAT(m.hour, '%H:%i') AS hour, m.journey, l.name AS league, m.result FROM matches m INNER JOIN teams team_local ON m.local_team = team_local.id_team INNER JOIN teams team_visitor ON m.visitor_team = team_visitor.id_team INNER JOIN leagues l ON m.league = l.id_league WHERE m.local_team = ? OR m.visitor_team = ? ORDER BY m.journey";

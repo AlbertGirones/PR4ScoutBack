@@ -5,6 +5,32 @@ const fs = require('fs');
 const path = require('path');
 const connection = require('../db/connection');
 
+router.get('/getPlayerInfo/:playerId', (req, res) => {
+  const playerId = req.params.playerId; // Obtener el ID del jugador de los parámetros de la URL
+
+  // Consulta SQL para obtener la información del jugador por su ID
+  const query = 'SELECT * FROM players WHERE id_player = ?';
+
+  // Ejecutar la consulta en la base de datos
+  connection.query(query, [playerId], (error, results) => {
+    if (error) {
+      console.error('Error al obtener la información del jugador:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+      return;
+    }
+
+    // Verificar si se encontró algún jugador con el ID especificado
+    if (results.length === 0) {
+      res.status(404).json({ error: 'Jugador no encontrado' });
+      return;
+    }
+
+    // Si se encontró el jugador, devolver sus datos en la respuesta
+    const playerInfo = results[0];
+    res.json(playerInfo);
+  });
+});
+
 router.get('/players/getScoutedPlayers/:teamId', (req, res) => {
   const teamId = req.params.teamId;
 
@@ -66,7 +92,7 @@ router.get('/visitantPlayersOfMatch/:clubId/:teamId', (req, res) => {
 
 router.get('/getScouts/:clubId', (req, res) => {
   const clubId = req.params.clubId;
-  const query = "SELECT p.id_player ,p.position, p.image, p.name, s.description FROM scouts s JOIN players p ON s.player = p.id_player WHERE s.team = ?";
+  const query = "SELECT s.id_scout, p.id_player ,p.position, p.image, p.name, s.description FROM scouts s JOIN players p ON s.player = p.id_player WHERE s.team = ?";
   connection.query(query, [clubId], (error, results) => {
     if (error) {
       console.error('Error al obtener los partidos:', error);
@@ -88,6 +114,29 @@ router.get('/getSquadTeamInScout/:clubId', (req, res) => {
     }
     res.json(results);
   });
+});
+
+router.get('/getScoutModifyInfo/:scoutId', (req, res) => {
+  const { scoutId } = req.params; // Obtener el ID del scout de los parámetros de la URL
+
+  // Realizar la consulta en la base de datos
+  connection.query(
+    'SELECT description FROM scouts WHERE id_scout = ?',
+    [scoutId],
+    (error, results) => {
+      if (error) {
+        console.error('Error al obtener la descripción del jugador:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      if (results.length === 0) {
+        res.status(404).json({ error: 'No se encontró la descripción del jugador' });
+        return;
+      }
+      // Devolver la descripción del jugador
+      res.json({ description: results[0].description });
+    }
+  );
 });
 
 router.get('/getInfoPlayer/:playerId', (req, res) => {
@@ -145,6 +194,44 @@ router.post('/players', upload.single('image'), (req, res) => {
     }
     res.json({ message: 'Equipo creado correctamente', results });
   });
+});
+
+router.put('/updatePlayer/:playerId', (req, res) => {
+  const { playerId } = req.params; // Obtener el ID del jugador de los parámetros de la URL
+  const { description, position } = req.body; // Obtener los datos del cuerpo de la solicitud
+
+  // Realizar la actualización en la base de datos
+  connection.query(
+    'UPDATE players SET description = ?, position = ? WHERE id_player = ?',
+    [description, position, playerId],
+    (error, results) => {
+      if (error) {
+        console.error('Error al modificar el jugador:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      res.json({ message: 'Jugador modificado correctamente', results });
+    }
+  );
+});
+
+router.put('/updateScout/:scoutId', (req, res) => {
+  const { scoutId } = req.params; // Obtener el ID del jugador de los parámetros de la URL
+  const { description } = req.body; // Obtener los datos del cuerpo de la solicitud
+
+  // Realizar la actualización en la base de datos
+  connection.query(
+    'UPDATE scouts SET description = ? WHERE id_scout = ?',
+    [description, scoutId],
+    (error, results) => {
+      if (error) {
+        console.error('Error al modificar el jugador:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+        return;
+      }
+      res.json({ message: 'Jugador modificado correctamente', results });
+    }
+  );
 });
 
 router.delete('/deletePlayer/:playerId', (req, res) => {
